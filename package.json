@@ -1,0 +1,35 @@
+{
+  "name": "magical-cube",
+  "version": "1.0.0",
+  "description": "WIP",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "cross-env tsc && webpack",
+    "package": "cross-env tsc && electron-packager . --out=dist --asar --overwrite --all"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fraxken/magical-cube.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fraxken/magical-cube/issues"
+  },
+  "homepage": "https://github.com/fraxken/magical-cube#readme",
+  "devDependencies": {
+    "@types/three": "^0.93.15",
+    "cross-env": "^5.2.0",
+    "electron": "^4.0.1",
+    "electron-packager": "^13.0.1",
+    "typescript": "^3.2.2",
+    "webpack": "^4.28.3",
+    "webpack-cli": "^3.2.0"
+  },
+  "dependencies": {
+    "three": "^0.100.0",
+    "three-orbit-controls": "^82.1.0"
+  }
+}
