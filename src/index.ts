@@ -1,4 +1,5 @@
-// import * as THREE from "three";
+import * as THREE from "three";
+import "three/OrbitControls";
 
 /**
  * Create Renderer
@@ -17,6 +18,7 @@ document.body.appendChild(renderer.domElement);
  * Setup and configure Camera
  */
 const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+console.log(THREE.OrbitControls);
 const controls = new THREE.OrbitControls(camera);
 camera.position.set( 0, 20, 100 );
 controls.update();
