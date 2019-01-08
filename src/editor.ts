@@ -1,5 +1,9 @@
 import * as THREE from "three";
 
+enum Geometry {
+    Cube = 1
+}
+
 class Editor {
     public renderer: THREE.WebGLRenderer;
     public camera: THREE.PerspectiveCamera;
@@ -9,6 +13,7 @@ class Editor {
     public rollOver: THREE.LineSegments;
     public scene = new THREE.Scene();
     public plane: THREE.Mesh;
+    public update: () => void = null;
 
     public static cubeGeo = new THREE.BoxBufferGeometry(50, 50, 50);
     public static cubeMaterial = new THREE.MeshNormalMaterial();
@@ -26,29 +31,38 @@ class Editor {
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
         this.camera.position.set(500, 800, 1300);
         this.camera.lookAt(0, 0, 0);
+        this.updateSize();
 
         // Inner objects
         this.voxelObjects = [];
 
-        // Setup listeners
-        document.addEventListener("resize", (event) => {
-            this.camera.aspect = window.innerWidth / window.innerHeight;
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
+        // Initialize scene Objects and rendering
         this.initialize();
         const animate = () => {
             requestAnimationFrame(animate);
+            if (this.update !== null) {
+                this.update();
+            }
             this.renderer.render(this.scene, this.camera);
         }
         animate();
+
+        // Setup listeners
+        window.onresize = () => {
+            this.updateSize();
+        }
+    }
+
+    updateSize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     initialize() {
         // Roll-over helpers
         const rollOverGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(50, 50, 50));
-        const rollOverMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 200 });
+        const rollOverMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 100 });
         this.rollOver = new THREE.LineSegments(rollOverGeo, rollOverMaterial)
         this.rollOver.renderOrder = 0;
         this.rollOver.position.set(0, 0, 0);
@@ -74,7 +88,7 @@ class Editor {
         this.voxelObjects.push(this.plane);
 
         // Add listeners
-        document.addEventListener("mousemove", (event) => {
+        this.renderer.domElement.addEventListener("mousemove", (event) => {
             event.preventDefault();
             this.mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
             this.rayCaster.setFromCamera(this.mouse, this.camera);
@@ -85,7 +99,26 @@ class Editor {
                 this.rollOver.position.copy(intersect.point).add(intersect.face.normal);
                 this.rollOver.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
             }
-        });
+        }, false);
+    }
+
+    add(at: THREE.Intersection, geometry: number) {
+        let voxel = null;
+        if (geometry === Geometry.Cube) {
+            voxel = new THREE.Mesh(Editor.cubeGeo, Editor.cubeMaterial);
+            voxel.position.copy(at.point).add(at.face.normal);
+            voxel.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+        }
+
+        if (voxel !== null) {
+            this.scene.add(voxel);
+            this.voxelObjects.push(voxel);
+        }
+    }
+
+    remove(at: THREE.Intersection) {
+        this.scene.remove(at.object);
+        this.voxelObjects.splice(this.voxelObjects.indexOf(at.object), 1);
     }
 }
 
