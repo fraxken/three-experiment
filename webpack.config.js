@@ -6,7 +6,7 @@ const BUILD = resolve(__dirname, "build");
 const THREE_EX = join(__dirname, "node_modules/three/examples/js");
 
 module.exports = {
-    entry: join(BUILD, "index.js"),
+    entry: [join(BUILD, "index.js"), join(BUILD, "editor.js")],
     mode: "none",
     optimization: {
         usedExports: true

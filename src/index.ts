@@ -1,47 +1,48 @@
 import * as THREE from "three";
+import Editor from "./editor";
 import "three/OrbitControls";
 
-/**
- * Create Renderer
- */
-const renderer = new THREE.WebGLRenderer({
-    antialias: true
-});
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-window.addEventListener("resize", () => {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
-document.body.appendChild(renderer.domElement);
+// CONSTANTS
+const LEFT_MOUSE_BTN = 0;
+const RIGHT_MOUSE_BTN = 2;
 
-/**
- * Setup and configure Camera
- */
-const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
-console.log(THREE.OrbitControls);
-const controls = new THREE.OrbitControls(camera);
-camera.position.set( 0, 20, 100 );
-controls.update();
+// GLOBALS
+let isShiftDown = false;
 
-const scene = new THREE.Scene();
+const CubeEditor = new Editor();
+const Controls = new THREE.OrbitControls(CubeEditor.camera);
 
-// Add cube
-const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-const material = new THREE.MeshNormalMaterial();
-const mesh = new THREE.Mesh(geometry, material);
-scene.add(mesh);
-scene.add(new THREE.GridHelper(100, 100));
+CubeEditor.initialize();
+Controls.update();
 
-/**
- * Animate and render scene
- */
-function animate() {
-    requestAnimationFrame(animate);
+function onMouseDown(event) {
+    event.preventDefault();
 
-    mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.02;
+    const intersects = CubeEditor.rayCaster.intersectObjects(CubeEditor.voxelObjects);
+    if (intersects.length > 0) {
+        const intersect = intersects[0];
 
-    controls.update();
-    renderer.render(scene, camera);
+        if (event.button === LEFT_MOUSE_BTN && isShiftDown) {
+            var voxel = new THREE.Mesh(Editor.cubeGeo, Editor.cubeMaterial);
+            voxel.position.copy(intersect.point).add(intersect.face.normal);
+            voxel.position.divideScalar(50).floor().multiplyScalar(50 ).addScalar(25);
+
+            CubeEditor.scene.add(voxel);
+            CubeEditor.voxelObjects.push(voxel);
+        }
+        else if (event.button === RIGHT_MOUSE_BTN && intersect.object !== CubeEditor.plane) {
+            CubeEditor.scene.remove(intersect.object);
+            CubeEditor.voxelObjects.splice(CubeEditor.voxelObjects.indexOf(intersect.object), 1);
+        }
+    }
 }
-animate();
+
+function onKeyDown(event) {
+    if (event.keyCode === 16) {
+        isShiftDown = !isShiftDown;
+    }
+}
+
+document.addEventListener("mousedown", onMouseDown, false);
+document.addEventListener("keydown", onKeyDown, false);
+document.addEventListener("keyup", onKeyDown, false);

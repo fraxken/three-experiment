@@ -2,6 +2,8 @@
 const electron = require('electron');
 const app = electron.app;
 
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = true;
+
 // prevent window being garbage collected
 let mainWindow;
 
@@ -15,6 +17,9 @@ function createMainWindow() {
 	const win = new electron.BrowserWindow({
 		width: 1200,
         height: 800,
+        webPreferences: {
+            nodeIntegration: true
+        }
     });
 
     win.webContents.openDevTools();
