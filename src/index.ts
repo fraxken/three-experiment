@@ -7,6 +7,8 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.BasicShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // Initialize Camera
@@ -44,6 +46,12 @@ eGenerate.addEventListener("click", () => {
     for (const cube of generator.initMap(steps)) {
         scene.add(cube);
     }
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2); // soft white light
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    scene.add(directionalLight);
 });
 
 function updateSize() {

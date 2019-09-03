@@ -6,10 +6,10 @@ export default class MapGenerator {
     static deathLimit: number = 4;
     static cubeWidth: number = 50;
     static defaultYPos: number = 0;
-    static surroundElimination: number = 2;
+    static surroundElimination: number = 3;
 
-    static mainColor = "#43A047";
-    static borderColor = "#81C784";
+    static mainColor = "#4CAF50";
+    static borderColor = "#66BB6A";
 
     private width: number;
     private height: number;
@@ -38,23 +38,31 @@ export default class MapGenerator {
         while (nbSteps--) {
             this.doSimulationStep();
         }
-        // this.cleanInnerIsolated();
+        this.cleanInnerIsolated();
         this.applyNeighboursCost();
 
         for (let x = 0; x < this.width; x++) {
             for (let z = 0; z < this.height; z++) {
-                if (this.map[x][z] > 0) {
-                    const cost = this.map[x][z];
-                    const color = cost <= 7 ? MapGenerator.borderColor : MapGenerator.mainColor;
-
+                if (this.map[x][z] === 0) {
                     const mesh = new THREE.Mesh(
                         new THREE.BoxBufferGeometry(MapGenerator.cubeWidth, MapGenerator.cubeWidth, MapGenerator.cubeWidth),
-                        new THREE.MeshBasicMaterial({ color })
+                        new THREE.MeshPhongMaterial({ color: "#1976D2", opacity: 0.75 })
                     );
+                    mesh.receiveShadow = true;
+                    mesh.castShadow = true;
+                    mesh.position.set(x * MapGenerator.cubeWidth, MapGenerator.defaultYPos - 25, z * MapGenerator.cubeWidth);
 
-                    const xPos = x * MapGenerator.cubeWidth;
-                    const zPos = z * MapGenerator.cubeWidth;
-                    mesh.position.set(xPos, MapGenerator.defaultYPos, zPos);
+                    yield mesh;
+                }
+                else {
+                    const color = this.map[x][z] <= 7 ? MapGenerator.borderColor : MapGenerator.mainColor;
+                    const mesh = new THREE.Mesh(
+                        new THREE.BoxBufferGeometry(MapGenerator.cubeWidth, MapGenerator.cubeWidth, MapGenerator.cubeWidth),
+                        new THREE.MeshPhongMaterial({ color })
+                    );
+                    mesh.receiveShadow = true;
+                    mesh.castShadow = true;
+                    mesh.position.set(x * MapGenerator.cubeWidth, MapGenerator.defaultYPos, z * MapGenerator.cubeWidth);
 
                     yield mesh;
                 }
@@ -89,7 +97,7 @@ export default class MapGenerator {
         this.map = newMap;
     }
 
-    public getSurroundingNeighboursCount(x: number, y: number): number {
+    private getSurroundingNeighboursCount(x: number, y: number): number {
         let count: number = 0;
 
         for (let i = -1; i < 2; i++) {
