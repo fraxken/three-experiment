@@ -10,7 +10,7 @@ const THREE_EX = join(__dirname, "node_modules/three/examples/js");
 
 module.exports = {
     entry: [
-        "index.js", "editor.js"
+        "index.js", "cellularautomatia.js"
     ].map((rel) => join(BUILD, rel)),
     mode: "none",
     optimization: {

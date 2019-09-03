@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import MapGenerator from "./map";
+import CellularAutomatia from "./cellularautomatia";
 import "three/OrbitControls";
 
 const renderer = new THREE.WebGLRenderer({
@@ -29,20 +29,16 @@ eGenerate.addEventListener("click", () => {
         scene.remove(scene.children[0]);
     }
 
-    // @ts-ignore
-    const width = document.getElementById("width").value;
+    const [width, height, steps, chanceToStartAlive] = [
+        getInputValue("width"),
+        getInputValue("height"),
+        getInputValue("steps"),
+        getInputValue("alive")
+    ];
 
-    // @ts-ignore
-    const height = document.getElementById("height").value;
-
-    // @ts-ignore
-    const steps = document.getElementById("steps").value;
-
-    // @ts-ignore
-    const alive = document.getElementById("alive").value;
-    MapGenerator.chanceToStartAlive = alive;
-
-    const generator = new MapGenerator(width, height);
+    const generator = new CellularAutomatia(width, height, {
+        chanceToStartAlive
+    });
     for (const cube of generator.initMap(steps)) {
         scene.add(cube);
     }
@@ -64,6 +60,10 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
+}
+
+function getInputValue(name: string): number {
+    return Number((<HTMLInputElement>document.getElementById(name)).value);
 }
 
 updateSize();

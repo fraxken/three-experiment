@@ -1,37 +1,56 @@
 import * as THREE from "three";
 
-export default class MapGenerator {
-    static chanceToStartAlive: number = 0.50;
-    static birthLimit: number = 4;
-    static deathLimit: number = 4;
-    static cubeWidth: number = 50;
-    static defaultYPos: number = 0;
-    static surroundElimination: number = 3;
+interface CellularOptions {
+    chanceToStartAlive?: number;
+    borderWidth?: number;
+    cubeWidth?: number;
+}
 
-    static mainColor = "#4CAF50";
-    static borderColor = "#66BB6A";
+type Color = string | number | THREE.Color;
+
+export default class CellularAutomatia {
+    static defaultYPos: number = 0;
+    static mainColor: Color = "#4CAF50";
+    static borderColor: Color = "#66BB6A";
+    static waterColor: Color = "#1976D2";
 
     private width: number;
     private height: number;
+    private cubeWidth: number;
     private map: number[][] = [];
 
-    constructor(width: number, height: number = width) {
+    constructor(width: number, height: number = width, options?: CellularOptions) {
         this.width = width;
         this.height = height;
-        const limit: number = MapGenerator.surroundElimination;
+        this.cubeWidth = options.cubeWidth || 50;
 
+        const chanceToStartAlive = options.chanceToStartAlive || 0.58;
+        const borderWidth = options.borderWidth || 2;
+        const maxWidth = this.width - borderWidth;
+        const maxHeight = this.height - borderWidth;
         for (let x = 0; x < this.width; x++) {
             this.map[x] = [];
             for (let z = 0; z < this.height; z++) {
                 // This first if avoid creating block around (avoid the 'cubic' effect)
-                if (x <= limit || x >= this.width - limit || z <= limit || z >= this.height - limit) {
+                if (x <= borderWidth || x >= maxWidth || z <= borderWidth || z >= maxHeight) {
                     this.map[x][z] = 0;
                 }
                 else {
-                    this.map[x][z] = Math.random() > MapGenerator.chanceToStartAlive ? 0 : 1;
+                    this.map[x][z] = Math.random() > chanceToStartAlive ? 0 : 1;
                 }
             }
         }
+    }
+
+    private createCube(color: Color, opacity: number = 1) {
+        const mesh = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(this.cubeWidth, this.cubeWidth, this.cubeWidth),
+            new THREE.MeshPhongMaterial({ color, opacity })
+        );
+        mesh.receiveShadow = true;
+        mesh.castShadow = true;
+
+        return mesh;
     }
 
     public *initMap(nbSteps: number = 8): IterableIterator<THREE.Mesh> {
@@ -43,29 +62,17 @@ export default class MapGenerator {
 
         for (let x = 0; x < this.width; x++) {
             for (let z = 0; z < this.height; z++) {
+                let mesh: THREE.Mesh;
                 if (this.map[x][z] === 0) {
-                    const mesh = new THREE.Mesh(
-                        new THREE.BoxBufferGeometry(MapGenerator.cubeWidth, MapGenerator.cubeWidth, MapGenerator.cubeWidth),
-                        new THREE.MeshPhongMaterial({ color: "#1976D2", opacity: 0.75 })
-                    );
-                    mesh.receiveShadow = true;
-                    mesh.castShadow = true;
-                    mesh.position.set(x * MapGenerator.cubeWidth, MapGenerator.defaultYPos - 25, z * MapGenerator.cubeWidth);
-
-                    yield mesh;
+                    mesh = this.createCube("#1976D2", 0.75);
+                    mesh.position.set(x * this.cubeWidth, CellularAutomatia.defaultYPos - 25, z * this.cubeWidth);
                 }
                 else {
-                    const color = this.map[x][z] <= 7 ? MapGenerator.borderColor : MapGenerator.mainColor;
-                    const mesh = new THREE.Mesh(
-                        new THREE.BoxBufferGeometry(MapGenerator.cubeWidth, MapGenerator.cubeWidth, MapGenerator.cubeWidth),
-                        new THREE.MeshPhongMaterial({ color })
-                    );
-                    mesh.receiveShadow = true;
-                    mesh.castShadow = true;
-                    mesh.position.set(x * MapGenerator.cubeWidth, MapGenerator.defaultYPos, z * MapGenerator.cubeWidth);
-
-                    yield mesh;
+                    const color = this.map[x][z] <= 7 ? CellularAutomatia.borderColor : CellularAutomatia.mainColor;
+                    mesh = this.createCube(color);
+                    mesh.position.set(x * this.cubeWidth, CellularAutomatia.defaultYPos, z * this.cubeWidth);
                 }
+                yield mesh;
             }
         }
     }
@@ -84,13 +91,6 @@ export default class MapGenerator {
                 else {
                     newMap[x][z] = 1;
                 }
-
-                // if (this.map[x][z]) {
-                //     newMap[x][z] = nAlive < MapGenerator.deathLimit ? 1 : 0;
-                // }
-                // else {
-                //     newMap[x][z] = nAlive > MapGenerator.birthLimit ? 0 : 1;
-                // }
             }
         }
 
