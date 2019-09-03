@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/three": "^0.103.2",
     "cross-env": "^5.2.0",
-    "electron": "^4.0.1",
+    "electron": "^6.0.7",
     "electron-packager": "^13.0.1",
     "typescript": "^3.2.2",
     "webpack": "^4.28.3",
