@@ -1,9 +1,5 @@
 import * as THREE from "three";
 
-interface Row {
-
-}
-
 export default class MapGenerator {
     static chanceToStartAlive: number = 0.45;
     static birthLimit: number = 4;
