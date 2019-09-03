@@ -1,19 +1,24 @@
-const { resolve, join } = require('path');
+// Require Node.js Dependencies
+const { join } = require("path");
+
+// Require Third-party Dependencies
 const webpack = require("webpack");
 
 // CONSTANTS
-const BUILD = resolve(__dirname, "build");
+const BUILD = join(__dirname, "build");
 const THREE_EX = join(__dirname, "node_modules/three/examples/js");
 
 module.exports = {
-    entry: [join(BUILD, "index.js"), join(BUILD, "editor.js")],
+    entry: [
+        "index.js", "editor.js"
+    ].map((rel) => join(BUILD, rel)),
     mode: "none",
     optimization: {
         usedExports: true
     },
     output: {
         filename: "bundle.js",
-        path: resolve(__dirname, "dist")
+        path: join(__dirname, "dist")
     },
     resolve: {
         alias: {
