@@ -1,12 +1,14 @@
 import * as THREE from "three";
+import Room from "./room";
 
 interface CellularOptions {
     chanceToStartAlive?: number;
     borderWidth?: number;
     cubeWidth?: number;
+    scene: THREE.Scene;
 }
 
-interface Coord {
+export interface Coord {
     x: number;
     y: number;
 }
@@ -23,11 +25,13 @@ export default class CellularAutomata {
     private height: number;
     private cubeWidth: number;
     private map: number[][] = [];
+    private scene: THREE.Scene;
 
-    constructor(width: number, height: number = width, options?: CellularOptions) {
+    constructor(width: number, height: number = width, options: CellularOptions) {
         this.width = width;
         this.height = height;
         this.cubeWidth = options.cubeWidth || 50;
+        this.scene = options.scene;
 
         const chanceToStartAlive = options.chanceToStartAlive || 0.58;
         const borderWidth = options.borderWidth || 2;
@@ -154,8 +158,10 @@ export default class CellularAutomata {
     }
 
     private processMap(): void {
+        // Cleanup ground
         const groundRegions = this.getRegions(1);
         const groundThreshold = 50;
+        const survivingRooms = new Set<Room>();
 
         for (const region of groundRegions) {
             if (region.size < groundThreshold) {
@@ -163,7 +169,89 @@ export default class CellularAutomata {
                     this.map[tile.x][tile.y] = 0;
                 }
             }
+            else {
+                survivingRooms.add(new Room(region, this.map));
+            }
         }
+
+        // Cleanup water
+        const waterRegions = this.getRegions(0);
+        const waterThreshold = 50;
+
+        for (const region of waterRegions) {
+            if (region.size < waterThreshold) {
+                for (const tile of region) {
+                    this.map[tile.x][tile.y] = 1;
+                }
+            }
+        }
+
+        this.connectClosestRooms(survivingRooms);
+    }
+
+    private connectClosestRooms(allRooms: Set<Room>): void {
+        let bestDistance = 0;
+        let possibleConnectionFound = false;
+        let bestTileA: Coord;
+        let bestTileB: Coord;
+        let bestRoomA: Room;
+        let bestRoomB: Room;
+
+        for (const roomA of allRooms) {
+            possibleConnectionFound = false;
+
+            for (const roomB of allRooms) {
+                if (roomA === roomB) {
+                    continue;
+                }
+                if (roomA.isConnected(roomB)) {
+                    possibleConnectionFound = false;
+                    break;
+                }
+
+                for (let tileIndexA = 0; tileIndexA < roomA.edgeTiles.length; tileIndexA++) {
+                    for (let tileIndexB = 0; tileIndexB < roomB.edgeTiles.length; tileIndexB++) {
+                        const tileA = roomA.edgeTiles[tileIndexA];
+                        const tileB = roomB.edgeTiles[tileIndexB];
+
+                        const distanceBetweenRooms = Math.pow(tileA.x - tileB.x, 2) + Math.pow(tileA.y - tileB.y, 2);
+                        if (distanceBetweenRooms < bestDistance || !possibleConnectionFound) {
+                            bestDistance = distanceBetweenRooms;
+                            possibleConnectionFound = true;
+
+                            bestTileA = tileA;
+                            bestTileB = tileB;
+
+                            bestRoomA = roomA;
+                            bestRoomB = roomB;
+                        }
+                    }
+                }
+            }
+
+            if (possibleConnectionFound) {
+                this.createPassage(bestRoomA, bestRoomB, bestTileA, bestTileB);
+            }
+        }
+    }
+
+    private createPassage(roomA: Room, roomB: Room, tileA: Coord, tileB: Coord): void {
+        Room.connectRooms(roomA, roomB);
+
+        const material = new THREE.LineBasicMaterial( { color: 0x0000ff } );
+        const geometry = new THREE.Geometry();
+        geometry.vertices.push(this.coordToWorldPoint(tileA), this.coordToWorldPoint(tileB));
+        const line = new THREE.Line(geometry, material);
+
+        this.scene.add(line);
+    }
+
+    private coordToWorldPoint(tile: Coord): THREE.Vector3 {
+        return new THREE.Vector3(
+            tile.x * this.cubeWidth,
+            CellularAutomata.defaultYPos + 2,
+            tile.y * this.cubeWidth
+        );
     }
 
     private isInMapRange(x: number, y: number): boolean {

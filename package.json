@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/fraxken/magical-cube#readme",
   "devDependencies": {
+    "@types/node": "^12.7.4",
     "@types/three": "^0.103.2",
     "cross-env": "^5.2.0",
     "electron": "^6.0.7",
