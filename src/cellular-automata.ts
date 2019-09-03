@@ -8,7 +8,7 @@ interface CellularOptions {
 
 type Color = string | number | THREE.Color;
 
-export default class CellularAutomatia {
+export default class CellularAutomata {
     static defaultYPos: number = 0;
     static mainColor: Color = "#4CAF50";
     static borderColor: Color = "#66BB6A";
@@ -65,12 +65,12 @@ export default class CellularAutomatia {
                 let mesh: THREE.Mesh;
                 if (this.map[x][z] === 0) {
                     mesh = this.createCube("#1976D2", 0.75);
-                    mesh.position.set(x * this.cubeWidth, CellularAutomatia.defaultYPos - 25, z * this.cubeWidth);
+                    mesh.position.set(x * this.cubeWidth, CellularAutomata.defaultYPos - 25, z * this.cubeWidth);
                 }
                 else {
-                    const color = this.map[x][z] <= 7 ? CellularAutomatia.borderColor : CellularAutomatia.mainColor;
+                    const color = this.map[x][z] <= 7 ? CellularAutomata.borderColor : CellularAutomata.mainColor;
                     mesh = this.createCube(color);
-                    mesh.position.set(x * this.cubeWidth, CellularAutomatia.defaultYPos, z * this.cubeWidth);
+                    mesh.position.set(x * this.cubeWidth, CellularAutomata.defaultYPos, z * this.cubeWidth);
                 }
                 yield mesh;
             }

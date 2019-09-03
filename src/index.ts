@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import CellularAutomatia from "./cellularautomatia";
+import CellularAutomata from "./cellular-automata";
 import "three/OrbitControls";
 
 const renderer = new THREE.WebGLRenderer({
@@ -36,7 +36,7 @@ eGenerate.addEventListener("click", () => {
         getInputValue("alive")
     ];
 
-    const generator = new CellularAutomatia(width, height, {
+    const generator = new CellularAutomata(width, height, {
         chanceToStartAlive
     });
     for (const cube of generator.initMap(steps)) {
