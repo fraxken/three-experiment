@@ -13,14 +13,14 @@
     "url": "git+https://github.com/fraxken/magical-cube.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "GENTILHOMME Thomas <gentilhomme.thomas@gmail.com>",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/fraxken/magical-cube/issues"
   },
   "homepage": "https://github.com/fraxken/magical-cube#readme",
   "devDependencies": {
-    "@types/three": "^0.93.15",
+    "@types/three": "^0.103.2",
     "cross-env": "^5.2.0",
     "electron": "^4.0.1",
     "electron-packager": "^13.0.1",
