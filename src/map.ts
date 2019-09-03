@@ -1,12 +1,12 @@
 import * as THREE from "three";
 
 export default class MapGenerator {
-    static chanceToStartAlive: number = 0.45;
+    static chanceToStartAlive: number = 0.50;
     static birthLimit: number = 4;
     static deathLimit: number = 4;
     static cubeWidth: number = 50;
     static defaultYPos: number = 0;
-    static surroundElimination: number = 5;
+    static surroundElimination: number = 2;
 
     static mainColor = "#43A047";
     static borderColor = "#81C784";
@@ -28,7 +28,7 @@ export default class MapGenerator {
                     this.map[x][z] = 0;
                 }
                 else {
-                    this.map[x][z] = Math.random() < MapGenerator.chanceToStartAlive ? 0 : 1;
+                    this.map[x][z] = Math.random() > MapGenerator.chanceToStartAlive ? 0 : 1;
                 }
             }
         }
@@ -38,15 +38,25 @@ export default class MapGenerator {
         while (nbSteps--) {
             this.doSimulationStep();
         }
-        this.cleanInnerIsolated();
+        // this.cleanInnerIsolated();
         this.applyNeighboursCost();
 
         for (let x = 0; x < this.width; x++) {
             for (let z = 0; z < this.height; z++) {
                 if (this.map[x][z] > 0) {
                     const cost = this.map[x][z];
+                    const color = cost <= 7 ? MapGenerator.borderColor : MapGenerator.mainColor;
 
-                    yield MapGenerator.createCube(new THREE.Vector2(x, z), cost <= 7 ? MapGenerator.borderColor : MapGenerator.mainColor);
+                    const mesh = new THREE.Mesh(
+                        new THREE.BoxBufferGeometry(MapGenerator.cubeWidth, MapGenerator.cubeWidth, MapGenerator.cubeWidth),
+                        new THREE.MeshBasicMaterial({ color })
+                    );
+
+                    const xPos = x * MapGenerator.cubeWidth;
+                    const zPos = z * MapGenerator.cubeWidth;
+                    mesh.position.set(xPos, MapGenerator.defaultYPos, zPos);
+
+                    yield mesh;
                 }
             }
         }
@@ -55,24 +65,31 @@ export default class MapGenerator {
     private doSimulationStep(): void {
         const newMap: number[][] = [];
 
-        for (let x = 0; x < this.map.length; x++) {
+        for (let x = 0; x < this.width; x++) {
             newMap[x] = [];
-            for(let z = 0; z < this.map[0].length; z++) {
-                const nAlive = this.countAliveNeighbours(x, z);
+            for(let z = 0; z < this.height; z++) {
+                const nAlive = this.getSurroundingNeighboursCount(x, z);
 
-                if (this.map[x][z]) {
-                    newMap[x][z] = nAlive < MapGenerator.deathLimit ? 1 : 0;
+                if (nAlive > 4) {
+                    newMap[x][z] = 0;
                 }
                 else {
-                    newMap[x][z] = nAlive > MapGenerator.birthLimit ? 0 : 1;
+                    newMap[x][z] = 1;
                 }
+
+                // if (this.map[x][z]) {
+                //     newMap[x][z] = nAlive < MapGenerator.deathLimit ? 1 : 0;
+                // }
+                // else {
+                //     newMap[x][z] = nAlive > MapGenerator.birthLimit ? 0 : 1;
+                // }
             }
         }
 
         this.map = newMap;
     }
 
-    public countAliveNeighbours(x: number, y: number): number {
+    public getSurroundingNeighboursCount(x: number, y: number): number {
         let count: number = 0;
 
         for (let i = -1; i < 2; i++) {
@@ -102,7 +119,7 @@ export default class MapGenerator {
                     continue;
                 }
 
-                const nAlive = this.countAliveNeighbours(x, z);
+                const nAlive = this.getSurroundingNeighboursCount(x, z);
                 if (nAlive === 8) {
                     this.map[x][z] = 1;
                 }
@@ -117,21 +134,8 @@ export default class MapGenerator {
                     continue;
                 }
 
-                this.map[x][z] = this.countAliveNeighbours(x, z);
+                this.map[x][z] = this.getSurroundingNeighboursCount(x, z);
             }
         }
-    }
-
-    static createCube(position: THREE.Vector2 = new THREE.Vector2(0, 0), color?: string | number | THREE.Color) {
-        const mesh = new THREE.Mesh(
-            new THREE.BoxBufferGeometry(MapGenerator.cubeWidth, MapGenerator.cubeWidth, MapGenerator.cubeWidth),
-            typeof color === "undefined" ? new THREE.MeshNormalMaterial() : new THREE.MeshBasicMaterial({ color })
-        );
-
-        const xPos = position.x * MapGenerator.cubeWidth;
-        const zPos = position.y * MapGenerator.cubeWidth;
-        mesh.position.set(xPos, MapGenerator.defaultYPos, zPos);
-
-        return mesh;
     }
 }

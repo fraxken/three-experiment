@@ -21,10 +21,30 @@ camera.lookAt(0, 0, 0);
 // Scene
 const scene = new THREE.Scene();
 
-const generator = new MapGenerator(50);
-for (const cube of generator.initMap()) {
-    scene.add(cube);
-}
+const eGenerate = document.getElementById("generate");
+eGenerate.addEventListener("click", () => {
+    while(scene.children.length > 0){
+        scene.remove(scene.children[0]);
+    }
+
+    // @ts-ignore
+    const width = document.getElementById("width").value;
+
+    // @ts-ignore
+    const height = document.getElementById("height").value;
+
+    // @ts-ignore
+    const steps = document.getElementById("steps").value;
+
+    // @ts-ignore
+    const alive = document.getElementById("alive").value;
+    MapGenerator.chanceToStartAlive = alive;
+
+    const generator = new MapGenerator(width, height);
+    for (const cube of generator.initMap(steps)) {
+        scene.add(cube);
+    }
+});
 
 function updateSize() {
     camera.aspect = window.innerWidth / window.innerHeight;
