@@ -3,6 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
 
 import CellularAutomata from "./cellular-automata";
+import { NoiseMap } from "./noise-map";
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true
@@ -63,6 +64,60 @@ eGenerate.addEventListener("click", async() => {
     while(scene.children.length > 0){
         scene.remove(scene.children[0]);
     }
+
+    // const [scale, octaves, lacunarity, persistance] = [
+    //     getInputValue("width"),
+    //     getInputValue("height"),
+    //     getInputValue("steps"),
+    //     getInputValue("alive")
+    // ];
+
+    // const generator = new NoiseMap(100, 100);
+    // generator.regions.push({
+    //     name: "WaterDeep",
+    //     color: "#1565C0",
+    //     height: 0.3
+    // });
+    // generator.regions.push({
+    //     name: "Water",
+    //     color: "#1976D2",
+    //     height: 0.4
+    // });
+    // generator.regions.push({
+    //     name: "Sand",
+    //     color: "#FFF176",
+    //     height: 0.5
+    // });
+    // generator.regions.push({
+    //     name: "Grass",
+    //     color: "#7CB342",
+    //     height: 0.55
+    // });
+    // generator.regions.push({
+    //     name: "Grass2",
+    //     color: "#558B2F",
+    //     height: 0.65
+    // });
+    // generator.regions.push({
+    //     name: "Rock",
+    //     color: "#4E342E",
+    //     height: 0.75
+    // });
+    // generator.regions.push({
+    //     name: "DeepRock",
+    //     color: "#3E2723",
+    //     height: 1
+    // });
+
+    // const it = generator.initMap({
+    //     scale,
+    //     octaves,
+    //     lacunarity,
+    //     persistance
+    // });
+    // for (const cube of it) {
+    //     scene.add(cube);
+    // }
 
     const [width, height, steps, chanceToStartAlive] = [
         getInputValue("width"),

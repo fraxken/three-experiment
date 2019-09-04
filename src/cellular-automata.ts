@@ -202,16 +202,12 @@ export default class CellularAutomata {
 
         this.connectClosestRooms(survivingRooms);
 
-        // Apply our cost algorithm
-        for (let x = 0; x < this.width; x++) {
-            for (let z = 0; z < this.height; z++) {
-                if (this.map[x][z] === 0) {
-                    continue;
-                }
+        // const mapFlags = CellularAutomata.initMapFlags(this.width, this.height);
+        // for (const room of survivingRooms) {
+        //     for (const { x, y } of room.edgeTiles) {
 
-                this.map[x][z] = this.getSurroundingNeighboursCount(x, z);
-            }
-        }
+        //     }
+        // }
     }
 
     private connectClosestRooms(allRooms: Room[], forceAccessFromMainRoom: boolean = false): void {
