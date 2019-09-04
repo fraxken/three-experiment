@@ -5,6 +5,8 @@ export default class Room {
     public roomSize: number;
     public edgeTiles: Coord[] = [];
     public connectedRooms: Set<Room> = new Set<Room>();
+    public isAccessibleFromMainRoom: boolean;
+    public isMainRoom: boolean;
 
     constructor(roomTiles: Set<Coord>, map: number[][]) {
         this.tiles = roomTiles;
@@ -21,7 +23,22 @@ export default class Room {
         }
     }
 
+    public setAccessibleFromMainRoom(): void {
+        if (!this.isAccessibleFromMainRoom) {
+            this.isAccessibleFromMainRoom = true;
+            for (const connectRooms of this.connectedRooms) {
+                connectRooms.setAccessibleFromMainRoom();
+            }
+        }
+    }
+
     static connectRooms(roomA: Room, roomB: Room): void {
+        if (roomA.isAccessibleFromMainRoom) {
+            roomB.setAccessibleFromMainRoom();
+        }
+        else if (roomB.isAccessibleFromMainRoom) {
+            roomA.setAccessibleFromMainRoom();
+        }
         roomA.connectedRooms.add(roomB);
         roomB.connectedRooms.add(roomA);
     }

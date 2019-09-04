@@ -168,13 +168,13 @@ export default class CellularAutomata {
     }
 
     private processMap(): void {
-        const survivingRooms = new Set<Room>();
+        const survivingRooms: Room[] = [];
         for (const region of this.getRegions(kGround)) {
             if (region.size < this.groundRegionThreshold) {
                 this.flagMapFromCoords(region, kWaterOrVoid);
             }
             else {
-                survivingRooms.add(new Room(region, this.map));
+                survivingRooms.push(new Room(region, this.map));
             }
         }
 
@@ -184,6 +184,10 @@ export default class CellularAutomata {
                 this.flagMapFromCoords(region, kGround);
             }
         }
+
+        survivingRooms.sort((a, b) => b.roomSize - a.roomSize);
+        survivingRooms[0].isMainRoom = true;
+        survivingRooms[0].isAccessibleFromMainRoom = true;
 
         this.connectClosestRooms(survivingRooms);
 
@@ -199,7 +203,15 @@ export default class CellularAutomata {
         }
     }
 
-    private connectClosestRooms(allRooms: Set<Room>): void {
+    private connectClosestRooms(allRooms: Room[], forceAccessFromMainRoom: boolean = false): void {
+        let roomListA: Room[] = forceAccessFromMainRoom ? [] : allRooms;
+        let roomListB: Room[] = forceAccessFromMainRoom ? [] : allRooms;
+        if (forceAccessFromMainRoom) {
+            for (const room of allRooms) {
+                (room.isAccessibleFromMainRoom ? roomListB : roomListA).push(room);
+            }
+        }
+
         let bestDistance = 0;
         let possibleConnectionFound = false;
         let bestTileA: Coord;
@@ -207,16 +219,17 @@ export default class CellularAutomata {
         let bestRoomA: Room;
         let bestRoomB: Room;
 
-        for (const roomA of allRooms) {
-            possibleConnectionFound = false;
-
-            for (const roomB of allRooms) {
-                if (roomA === roomB) {
+        for (const roomA of roomListA) {
+            if (!forceAccessFromMainRoom) {
+                possibleConnectionFound = false;
+                if (roomA.connectedRooms.size > 0) {
                     continue;
                 }
-                if (roomA.isConnected(roomB)) {
-                    possibleConnectionFound = false;
-                    break;
+            }
+
+            for (const roomB of roomListB) {
+                if (roomA === roomB || roomA.isConnected(roomB)) {
+                    continue;
                 }
 
                 for (let tileIndexA = 0; tileIndexA < roomA.edgeTiles.length; tileIndexA++) {
@@ -239,9 +252,18 @@ export default class CellularAutomata {
                 }
             }
 
-            if (possibleConnectionFound) {
+            if (possibleConnectionFound && !forceAccessFromMainRoom) {
                 this.createPassage(bestRoomA, bestRoomB, bestTileA, bestTileB);
             }
+        }
+
+        if (possibleConnectionFound && forceAccessFromMainRoom) {
+            this.createPassage(bestRoomA, bestRoomB, bestTileA, bestTileB);
+            this.connectClosestRooms(allRooms, true);
+        }
+
+        if (!forceAccessFromMainRoom) {
+            this.connectClosestRooms(allRooms, true);
         }
     }
 
