@@ -6,7 +6,6 @@ const webpack = require("webpack");
 
 // CONSTANTS
 const BUILD = join(__dirname, "build");
-const THREE_EX = join(__dirname, "node_modules/three/examples/js");
 
 module.exports = {
     entry: [
@@ -20,14 +19,7 @@ module.exports = {
         filename: "bundle.js",
         path: join(__dirname, "dist")
     },
-    resolve: {
-        alias: {
-            "three/OrbitControls": join(THREE_EX, "controls/OrbitControls.js")
-        }
-    },
     plugins:[
-        new webpack.ProvidePlugin({
-            THREE: "three"
-        })
+        new webpack.ProvidePlugin({ THREE: "three" })
     ]
 };

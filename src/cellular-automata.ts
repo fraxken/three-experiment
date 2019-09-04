@@ -41,7 +41,7 @@ export default class CellularAutomata {
     constructor(width: number, height: number = width, options: CellularOptions) {
         this.width = width;
         this.height = height;
-        this.cubeWidth = options.cubeWidth || 50;
+        this.cubeWidth = options.cubeWidth || 1;
         this.scene = options.scene;
         this.borderWidth = options.borderWidth || 2;
         this.maxWidth = this.width - this.borderWidth;
@@ -76,6 +76,16 @@ export default class CellularAutomata {
         return mapFlags;
     }
 
+    public *getRandomVectorInMap(luck: number = 0.5): IterableIterator<THREE.Vector3> {
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                if (this.map[x][y] >= kGround && Math.random() < luck) {
+                    yield this.coordToWorldPoint({ x, y });
+                }
+            }
+        }
+    }
+
     private isInMapRange(x: number, y: number): boolean {
         return x >= 0 && x < this.width && y >= 0 && y < this.height;
     }
@@ -106,7 +116,8 @@ export default class CellularAutomata {
                 let mesh: THREE.Mesh;
                 if (this.map[x][z] === kWaterOrVoid) {
                     mesh = this.createCube("#1976D2", 0.75);
-                    mesh.position.set(x * this.cubeWidth, CellularAutomata.defaultYPos - 25, z * this.cubeWidth);
+                    const yPos = CellularAutomata.defaultYPos - (this.cubeWidth / 2);
+                    mesh.position.set(x * this.cubeWidth, yPos, z * this.cubeWidth);
                 }
                 else {
                     const color = this.map[x][z] <= 7 ? CellularAutomata.borderColor : CellularAutomata.mainColor;
