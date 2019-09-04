@@ -267,15 +267,66 @@ export default class CellularAutomata {
         }
     }
 
+    private drawCircle(tile: Coord, radius: number) {
+        for (let x = -radius; x <= radius; x++) {
+            for (let y = -radius; y <= radius; y++) {
+                if (x*x + y*y <= radius*radius) {
+                    const drawX = tile.x + x;
+                    const drawY = tile.y + y;
+                    if (this.isInMapRange(drawX, drawY)) {
+                        this.map[drawX][drawY] = kGround;
+                    }
+                }
+            }
+        }
+    }
+
     private createPassage(roomA: Room, roomB: Room, tileA: Coord, tileB: Coord): void {
         Room.connectRooms(roomA, roomB);
+        for (const tile of this.getLine(tileA, tileB)) {
+            this.drawCircle(tile, 3);
+        }
+    }
 
-        const material = new THREE.LineBasicMaterial( { color: 0x0000ff } );
-        const geometry = new THREE.Geometry();
-        geometry.vertices.push(this.coordToWorldPoint(tileA, 2), this.coordToWorldPoint(tileB, 2));
-        const line = new THREE.Line(geometry, material);
+    getLine(from: Coord, to: Coord): Coord[] {
+        const line: Coord[] = [];
+        let { x, y } = from;
+        const [dx, dy] = [to.x - x, to.y - y];
+        let [longest, shortest] = [Math.abs(dx), Math.abs(dy)];
 
-        this.scene.add(line);
+        const step = Math.sign(longest < shortest ? dy : dx);
+        const gradientStep = Math.sign(longest < shortest ? dx : dy);
+        const inverted = longest < shortest;
+        if (longest < shortest) {
+            longest = Math.abs(dy);
+            shortest = Math.abs(dx);
+        }
+
+        let gradientAccumulation = longest / 2;
+        for (let i = 0; i < longest; i++) {
+            line.push({ x, y });
+
+            if (inverted) {
+                y += step;
+            }
+            else {
+                x += step;
+            }
+
+            gradientAccumulation += shortest;
+            if (gradientAccumulation >= longest) {
+                if (inverted) {
+                    x += gradientStep;
+                }
+                else {
+                    y += gradientStep;
+                }
+
+                gradientAccumulation -= longest;
+            }
+        }
+
+        return line;
     }
 
     private coordToWorldPoint(tile: Coord, y: number = 0): THREE.Vector3 {
