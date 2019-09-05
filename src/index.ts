@@ -1,69 +1,31 @@
+// Three.js Dependencies
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
 
+// Internal Dependencies
 import CellularAutomata from "./cellular-automata";
 import { NoiseMap } from "./noise-map";
+import { EvolutionThree, ModelLoader } from "./framework/index";
 
-const renderer = new THREE.WebGLRenderer({
-    antialias: true
+const game = new EvolutionThree();
+
+// Initialize Camera & Controls
+game.camera.position.set(0, 100, 0);
+game.camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(game.camera, game.renderer.domElement);
+game.on("update", () => {
+    controls.update();
 });
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.BasicShadowMap;
-document.body.appendChild(renderer.domElement);
 
-// Initialize Camera
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.update();
-camera.position.set(0, 100, 0);
-camera.lookAt(0, 0, 0);
-
-// Scene
-const scene = new THREE.Scene();
-
-const textureLoader = new THREE.TextureLoader();
-textureLoader.setPath("./assets/models/")
-const objLoader = new OBJLoader();
-objLoader.setPath("./assets/models/");
-
-function loadTexture(name): Promise<THREE.Texture> {
-    return new Promise((resolve, reject) => {
-        textureLoader.load(name, resolve, void 0, reject);
-    });
-}
-
-function loadModel(modelName): Promise<THREE.Group> {
-    return new Promise((resolve, reject) => {
-        objLoader.load(`${modelName}.obj`, resolve, void 0, reject);
-    });
-}
-
-async function getCompleteModel(name) {
-    const [map, obj] = await Promise.all([
-        loadTexture(`${name}.png`),
-        loadModel(name)
-    ]);
-    const material = new THREE.MeshPhongMaterial({ map });
-    obj.traverse((node) => {
-        // @ts-ignore
-        if (node.isMesh) {
-            // @ts-ignore
-            node.material = material;
-        }
-    });
-
-    return obj;
-}
+const loader = new ModelLoader({
+    modelsPath: "./assets/models/",
+    texturePath: "./assets/textures/"
+});
 
 const eGenerate = document.getElementById("generate");
 eGenerate.addEventListener("click", async() => {
-    while(scene.children.length > 0){
-        scene.remove(scene.children[0]);
-    }
+    game.cleanScene();
 
     // const [scale, octaves, lacunarity, persistance] = [
     //     getInputValue("width"),
@@ -130,52 +92,35 @@ eGenerate.addEventListener("click", async() => {
         chanceToStartAlive
     });
     for (const cube of generator.initMap(steps)) {
-        scene.add(cube);
+        game.currentScene.add(cube);
     }
 
     for (const pos of generator.getRandomVectorInMap(0.005)) {
-        const treeNum = Math.floor(Math.random() * 3) + 1;
-        const model = await getCompleteModel(`tree${treeNum}`);
+        const treeNum = `tree${Math.floor(Math.random() * 3) + 1}`;
+        const model = await loader.load(treeNum, `${treeNum}.png`);
         model.scale.set(0.7, 0.7, 0.7);
         model.position.set(pos.x, pos.y + 0.8, pos.z);
-        scene.add(model);
+        game.currentScene.add(model);
     }
 
     for (const pos of generator.getRandomVectorInMap(0.002)) {
-        const model = await getCompleteModel("lampadaire");
+        const model = await loader.load("lampadaire", "lampadaire.png");
         model.position.set(pos.x, pos.y + 1, pos.z);
 
         const light = new THREE.PointLight("#FFF9C4", 2, 30);
         light.position.set(pos.x, pos.y, pos.z);
-        scene.add(light);
+        game.currentScene.add(light);
 
-        scene.add(model);
+        game.currentScene.add(model);
     }
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.2); // soft white light
-    scene.add(ambientLight);
+    game.currentScene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    scene.add(directionalLight);
+    game.currentScene.add(directionalLight);
 });
-
-function updateSize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-}
 
 function getInputValue(name: string): number {
     return Number((<HTMLInputElement>document.getElementById(name)).value);
 }
-
-updateSize();
-animate();
-window.onresize = () => updateSize();
-

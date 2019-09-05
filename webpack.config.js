@@ -9,7 +9,11 @@ const BUILD = join(__dirname, "build");
 
 module.exports = {
     entry: [
-        "index.js", "cellular-automata.js", "room.js", "noise-map.js"
+        "index.js",
+        "cellular-automata.js",
+        "cellular-array.js",
+        "room.js",
+        "noise-map.js"
     ].map((rel) => join(BUILD, rel)),
     mode: "none",
     optimization: {
