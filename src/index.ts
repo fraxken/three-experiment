@@ -114,8 +114,8 @@ window.onload = () => {
     const noise = gui.addFolder("Noise Map");
     noise.add(options, "scale", 0.0001, 500);
     noise.add(options, "octaves", 1, 100);
-    noise.add(options, "lacunarity", 1, 100);
-    noise.add(options, "persistance", 1, 100);
+    noise.add(options, "lacunarity", 0, 20).step(0.01);
+    noise.add(options, "persistance", 0, 20).step(0.01);
     noise.open();
 
     gui.add(options, "generate");

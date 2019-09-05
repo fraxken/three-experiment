@@ -29,25 +29,32 @@ export class Noise {
             scale = Noise.DEFAULT_SCALE;
         }
 
+        const octaveOffsets: THREE.Vector2[] = [];
+        for (let i = 0; i < octaves; i++) {
+            const offsetX = THREE.Math.randInt(-100000, 100000);
+            const offsetY = THREE.Math.randInt(-100000, 100000);
+
+            octaveOffsets[i] = new THREE.Vector2(offsetX, offsetY);
+        }
+
         let maxNoiseHeight = Number.MIN_SAFE_INTEGER;
         let minNoiseHeight = Number.MAX_SAFE_INTEGER;
         let halfWidth = mapWidth / 2;
         let halfHeight = mapHeight / 2;
 
-        for (let x = 0; x < mapWidth; x++) {
-            noiseMap[x] = [];
-            for (let y = 0; y < mapHeight; y++) {
+        for (let y = 0; y < mapHeight; y++) {
+            noiseMap[y] = [];
+            for (let x = 0; x < mapWidth; x++) {
                 let amplitude = 1;
                 let frequency = 1;
                 let noiseHeight = 0;
 
                 for (let i = 0; i < octaves; i++) {
-                    const sampleX = (x - halfWidth) / scale * frequency;
-                    const sampleY = (y - halfHeight) / scale * frequency;
+                    const sampleX = (octaveOffsets[i].x + x - halfWidth) / scale * frequency;
+                    const sampleY = (octaveOffsets[i].y + y - halfHeight) / scale * frequency;
 
                     const perlinValue = simplex.noise2D(sampleX, sampleY);
-                    noiseMap[x][y] = perlinValue;
-                    noiseHeight = perlinValue * amplitude;
+                    noiseHeight += perlinValue * amplitude;
                     amplitude *= persistance;
                     frequency *= lacunarity;
                 }
@@ -58,13 +65,13 @@ export class Noise {
                 else if (noiseHeight < minNoiseHeight) {
                     minNoiseHeight = noiseHeight;
                 }
-                noiseMap[x][y] = noiseHeight;
+                noiseMap[y][x] = noiseHeight;
             }
         }
 
-        for (let x = 0; x < mapWidth; x++) {
-            for (let y = 0; y < mapHeight; y++) {
-                noiseMap[x][y] = inverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x][y]);
+        for (let y = 0; y < mapHeight; y++) {
+            for (let x = 0; x < mapWidth; x++) {
+                noiseMap[y][x] = inverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[y][x]);
             }
         }
 
@@ -112,8 +119,8 @@ export class NoiseMap {
     public *initMap(options: NoiseOptions): IterableIterator<THREE.Mesh> {
         const noiseMap = Noise.generateNoiseMap(this.width, this.height, options);
 
-        for (let x = 0; x < this.width; x++) {
-            for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.height; x++) {
+            for (let y = 0; y < this.width; y++) {
                 const currentHeight = noiseMap[x][y];
                 // const color = Color.linearInterpolation(Color.Black, Color.White, currentHeight);
 
