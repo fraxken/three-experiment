@@ -2,10 +2,18 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
+// Third-party Dependencies
+import * as dat from 'dat.gui';
+import { readFileSync } from "fs";
+
 // Internal Dependencies
 import CellularAutomata from "./cellular-automata";
-import { NoiseMap } from "./noise-map";
+import { NoiseMap, TerrainType } from "./noise-map";
 import { EvolutionThree, ModelLoader } from "./framework/index";
+
+// Load regions
+const regionsStr = readFileSync("./src/regions.json", "utf-8");
+const regions: TerrainType[] = JSON.parse(regionsStr);
 
 const game = new EvolutionThree();
 
@@ -18,109 +26,97 @@ game.on("update", () => {
     controls.update();
 });
 
-const loader = new ModelLoader({
-    modelsPath: "./assets/models/",
-    texturePath: "./assets/textures/"
-});
-
-const eGenerate = document.getElementById("generate");
-eGenerate.addEventListener("click", async() => {
+async function generate() {
     game.cleanScene();
-
-    // const [scale, octaves, lacunarity, persistance] = [
-    //     getInputValue("width"),
-    //     getInputValue("height"),
-    //     getInputValue("steps"),
-    //     getInputValue("alive")
-    // ];
-
-    // const generator = new NoiseMap(100, 100);
-    // generator.regions.push({
-    //     name: "WaterDeep",
-    //     color: "#1565C0",
-    //     height: 0.3
-    // });
-    // generator.regions.push({
-    //     name: "Water",
-    //     color: "#1976D2",
-    //     height: 0.4
-    // });
-    // generator.regions.push({
-    //     name: "Sand",
-    //     color: "#FFF176",
-    //     height: 0.5
-    // });
-    // generator.regions.push({
-    //     name: "Grass",
-    //     color: "#7CB342",
-    //     height: 0.55
-    // });
-    // generator.regions.push({
-    //     name: "Grass2",
-    //     color: "#558B2F",
-    //     height: 0.65
-    // });
-    // generator.regions.push({
-    //     name: "Rock",
-    //     color: "#4E342E",
-    //     height: 0.75
-    // });
-    // generator.regions.push({
-    //     name: "DeepRock",
-    //     color: "#3E2723",
-    //     height: 1
-    // });
-
-    // const it = generator.initMap({
-    //     scale,
-    //     octaves,
-    //     lacunarity,
-    //     persistance
-    // });
-    // for (const cube of it) {
-    //     scene.add(cube);
-    // }
-
-    const [width, height, steps, chanceToStartAlive] = [
-        getInputValue("width"),
-        getInputValue("height"),
-        getInputValue("steps"),
-        getInputValue("alive")
-    ];
-
-    const generator = new CellularAutomata(width, height, {
-        chanceToStartAlive
+    const loader = new ModelLoader({
+        modelsPath: "./assets/models/",
+        texturePath: "./assets/textures/"
     });
-    for (const cube of generator.initMap(steps)) {
-        game.currentScene.add(cube);
+
+    if (this.type === "cellular-automata") {
+        const generator = new CellularAutomata(this.width, this.height, {
+            chanceToStartAlive: this.chanceToStartAlive,
+            connectionsRadius: this.connectionsRadius
+        });
+        for (const cube of generator.initMap(this.simulationSteps)) {
+            game.currentScene.add(cube);
+        }
+
+        for (const pos of generator.getRandomVectorInMap(0.005)) {
+            const treeNum = `tree${Math.floor(Math.random() * 3) + 1}`;
+            const model = await loader.load(treeNum, `${treeNum}.png`);
+            model.scale.set(0.7, 0.7, 0.7);
+            model.position.set(pos.x, pos.y + 0.8, pos.z);
+            game.currentScene.add(model);
+        }
+
+        for (const pos of generator.getRandomVectorInMap(0.002)) {
+            const model = await loader.load("lampadaire", "lampadaire.png");
+            model.position.set(pos.x, pos.y + 1, pos.z);
+
+            const light = new THREE.PointLight("#FFF9C4", 2, 30);
+            light.position.set(pos.x, pos.y, pos.z);
+            game.currentScene.add(light);
+
+            game.currentScene.add(model);
+        }
+    }
+    else {
+        const generator = new NoiseMap(this.width, this.height);
+        generator.regions.push(...regions);
+
+        const it = generator.initMap({
+            scale: this.scale,
+            octaves: this.octaves,
+            lacunarity: this.lacunarity,
+            persistance: this.persistance
+        });
+        for (const cube of it) {
+            game.currentScene.add(cube);
+        }
     }
 
-    for (const pos of generator.getRandomVectorInMap(0.005)) {
-        const treeNum = `tree${Math.floor(Math.random() * 3) + 1}`;
-        const model = await loader.load(treeNum, `${treeNum}.png`);
-        model.scale.set(0.7, 0.7, 0.7);
-        model.position.set(pos.x, pos.y + 0.8, pos.z);
-        game.currentScene.add(model);
-    }
+    game.currentScene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    game.currentScene.add(new THREE.DirectionalLight(0xffffff, 0.8));
+}
 
-    for (const pos of generator.getRandomVectorInMap(0.002)) {
-        const model = await loader.load("lampadaire", "lampadaire.png");
-        model.position.set(pos.x, pos.y + 1, pos.z);
+window.onload = () => {
+    const options = {
+        type: "cellular-automata",
+        width: 50,
+        height: 50,
+        simulationSteps: 12,
+        chanceToStartAlive: 0.55,
+        voidRegionThreshold: 50,
+        groundRegionThreshold: 50,
+        connectionsRadius: 3,
+        scale: 24,
+        octaves: 20,
+        lacunarity: 1,
+        persistance: 1,
+        generate
+    };
 
-        const light = new THREE.PointLight("#FFF9C4", 2, 30);
-        light.position.set(pos.x, pos.y, pos.z);
-        game.currentScene.add(light);
+    const gui = new dat.GUI({ load: JSON });
+    gui.remember(options);
+    gui.add(options, "type", ["cellular-automata", "noise-map"]);
+    gui.add(options, "width", 10, 500);
+    gui.add(options, "height", 10, 500);
 
-        game.currentScene.add(model);
-    }
+    const cellular = gui.addFolder("Cellular Automata");
+    cellular.add(options, "simulationSteps", 2, 20);
+    cellular.add(options, "chanceToStartAlive", 0, 1);
+    cellular.add(options, "voidRegionThreshold", 1, 250);
+    cellular.add(options, "groundRegionThreshold", 1, 250);
+    cellular.add(options, "connectionsRadius", 1, 6).step(1);
+    cellular.open();
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2); // soft white light
-    game.currentScene.add(ambientLight);
+    const noise = gui.addFolder("Noise Map");
+    noise.add(options, "scale", 0.0001, 500);
+    noise.add(options, "octaves", 1, 100);
+    noise.add(options, "lacunarity", 1, 100);
+    noise.add(options, "persistance", 1, 100);
+    noise.open();
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    game.currentScene.add(directionalLight);
-});
-
-function getInputValue(name: string): number {
-    return Number((<HTMLInputElement>document.getElementById(name)).value);
+    gui.add(options, "generate");
 }

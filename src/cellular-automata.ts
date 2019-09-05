@@ -8,6 +8,7 @@ export interface CellularOptions {
     cubeWidth?: number;
     voidRegionThreshold?: number;
     groundRegionThreshold?: number;
+    connectionsRadius?: number;
 }
 
 export interface Coord {
@@ -36,6 +37,7 @@ export default class CellularAutomata {
     private map: CellularArray;
     private voidRegionThreshold: number;
     private groundRegionThreshold: number;
+    private connectionsRadius: number;
 
     constructor(width: number, height: number = width, options: CellularOptions) {
         this.width = width;
@@ -46,6 +48,7 @@ export default class CellularAutomata {
         this.maxHeight = this.height - this.borderWidth;
         this.voidRegionThreshold = options.voidRegionThreshold || 50;
         this.groundRegionThreshold = options.groundRegionThreshold || 50;
+        this.connectionsRadius = options.connectionsRadius || 3;
         this.map = new CellularArray(width, height, true);
 
         const chanceToStartAlive = options.chanceToStartAlive || 0.58;
@@ -154,10 +157,12 @@ export default class CellularAutomata {
         }
 
         survivingRooms.sort((a, b) => b.roomSize - a.roomSize);
-        survivingRooms[0].isMainRoom = true;
-        survivingRooms[0].isAccessibleFromMainRoom = true;
+        if (survivingRooms.length > 0) {
+            survivingRooms[0].isMainRoom = true;
+            survivingRooms[0].isAccessibleFromMainRoom = true;
 
-        this.connectClosestRooms(survivingRooms);
+            this.connectClosestRooms(survivingRooms);
+        }
     }
 
     private connectClosestRooms(allRooms: Room[], forceAccessFromMainRoom: boolean = false): void {
@@ -230,9 +235,7 @@ export default class CellularAutomata {
                 if (x*x + y*y <= radius*radius) {
                     const drawX = tile.x + x;
                     const drawY = tile.y + y;
-                    if (this.map.inRange(drawX, drawY)) {
-                        this.map.set(drawX, drawY, kGround);
-                    }
+                    this.map.set(drawX, drawY, kGround);
                 }
             }
         }
@@ -241,7 +244,7 @@ export default class CellularAutomata {
     private createPassage(roomA: Room, roomB: Room, tileA: Coord, tileB: Coord): void {
         Room.connectRooms(roomA, roomB);
         for (const tile of this.getLine(tileA, tileB)) {
-            this.drawCircle(tile, 3);
+            this.drawCircle(tile, this.connectionsRadius);
         }
     }
 

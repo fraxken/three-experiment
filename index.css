@@ -53,27 +53,3 @@ body, html {
     overflow: hidden;
     background: red;
 }
-
-section#menu {
-    width: 240px;
-    min-height: 50px;
-    background: rgba(33, 33, 33, 0.8);
-    border-radius: 2px;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 9999;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-}
-
-section#menu input ~ label {
-    margin-top: 10px;
-}
-section#menu label {
-    color: #FFF;
-}
-section#menu button {
-    margin-top: 10px;
-}

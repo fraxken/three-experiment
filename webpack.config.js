@@ -13,8 +13,10 @@ module.exports = {
         "cellular-automata.js",
         "cellular-array.js",
         "room.js",
-        "noise-map.js"
+        "noise-map.js",
+        "framework/index.js"
     ].map((rel) => join(BUILD, rel)),
+    target: "electron-main",
     mode: "none",
     optimization: {
         usedExports: true
