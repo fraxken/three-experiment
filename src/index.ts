@@ -127,8 +127,7 @@ eGenerate.addEventListener("click", async() => {
     ];
 
     const generator = new CellularAutomata(width, height, {
-        chanceToStartAlive,
-        scene
+        chanceToStartAlive
     });
     for (const cube of generator.initMap(steps)) {
         scene.add(cube);

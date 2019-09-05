@@ -1,21 +1,22 @@
 import { Coord } from "./cellular-automata";
+import CellularArray from "./cellular-array";
 
 export default class Room {
-    public tiles: Set<Coord>;
+    public tiles: Coord[];
     public roomSize: number;
     public edgeTiles: Coord[] = [];
     public connectedRooms: Set<Room> = new Set<Room>();
     public isAccessibleFromMainRoom: boolean;
     public isMainRoom: boolean;
 
-    constructor(roomTiles: Set<Coord>, map: number[][]) {
+    constructor(roomTiles: Coord[], map: CellularArray) {
         this.tiles = roomTiles;
-        this.roomSize = this.tiles.size;
+        this.roomSize = this.tiles.length;
 
         for (const tile of this.tiles) {
             for (let x = tile.x - 1; x <= tile.x + 1; x++) {
                 for (let y = tile.y - 1; y <= tile.y + 1; y++) {
-                    if ((x === tile.x || y === tile.y) && map[x][y] === 1) {
+                    if ((x === tile.x || y === tile.y) && map.get(x, y) === 1) {
                         this.edgeTiles.push(tile);
                     }
                 }

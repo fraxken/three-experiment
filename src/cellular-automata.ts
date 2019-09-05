@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import Room from "./room";
+import CellularArray from "./cellular-array";
 
 export interface CellularOptions {
     chanceToStartAlive?: number;
@@ -7,7 +8,6 @@ export interface CellularOptions {
     cubeWidth?: number;
     voidRegionThreshold?: number;
     groundRegionThreshold?: number;
-    scene: THREE.Scene;
 }
 
 export interface Coord {
@@ -33,8 +33,7 @@ export default class CellularAutomata {
     private maxHeight: number;
     private cubeWidth: number;
     private borderWidth: number;
-    private map: number[][] = [];
-    private scene: THREE.Scene;
+    private map: CellularArray;
     private voidRegionThreshold: number;
     private groundRegionThreshold: number;
 
@@ -42,52 +41,30 @@ export default class CellularAutomata {
         this.width = width;
         this.height = height;
         this.cubeWidth = options.cubeWidth || 1;
-        this.scene = options.scene;
         this.borderWidth = options.borderWidth || 2;
         this.maxWidth = this.width - this.borderWidth;
         this.maxHeight = this.height - this.borderWidth;
         this.voidRegionThreshold = options.voidRegionThreshold || 50;
         this.groundRegionThreshold = options.groundRegionThreshold || 50;
+        this.map = new CellularArray(width, height, true);
 
         const chanceToStartAlive = options.chanceToStartAlive || 0.58;
-        for (let x = 0; x < this.width; x++) {
-            this.map[x] = [];
-            for (let y = 0; y < this.height; y++) {
-                if (this.isInMapBorderRange(x, y)) {
-                    this.map[x][y] = kWaterOrVoid;
-                }
-                else {
-                    this.map[x][y] = Math.random() > chanceToStartAlive ? kWaterOrVoid : kGround;
-                }
+        for (const { x, y } of this.map) {
+            if (this.isInMapBorderRange(x, y)) {
+                this.map.set(x, y, kWaterOrVoid);
+            }
+            else {
+                this.map.set(x, y, Math.random() > chanceToStartAlive ? kWaterOrVoid : kGround);
             }
         }
-    }
-
-    static initMapFlags(width: number, height: number): number[][] {
-        const mapFlags: number[][] = [];
-
-        for (let x = 0; x < width; x++) {
-            mapFlags[x] = [];
-            for (let y = 0; y < height; y++) {
-                mapFlags[x][y] = 0;
-            }
-        }
-
-        return mapFlags;
     }
 
     public *getRandomVectorInMap(luck: number = 0.5): IterableIterator<THREE.Vector3> {
-        for (let x = 0; x < this.width; x++) {
-            for (let y = 0; y < this.height; y++) {
-                if (this.map[x][y] >= kGround && Math.random() < luck) {
-                    yield this.coordToWorldPoint({ x, y });
-                }
+        for (const { x, y, value } of this.map) {
+            if (value >= kGround && Math.random() < luck) {
+                yield this.coordToWorldPoint({ x, y });
             }
         }
-    }
-
-    private isInMapRange(x: number, y: number): boolean {
-        return x >= 0 && x < this.width && y >= 0 && y < this.height;
     }
 
     private isInMapBorderRange(x: number, y: number): boolean {
@@ -107,46 +84,31 @@ export default class CellularAutomata {
 
     public *initMap(nbSteps: number = 8): IterableIterator<THREE.Mesh> {
         while (nbSteps--) {
-            this.doSimulationStep();
+            const newMap = new CellularArray(this.width, this.height);
+
+            for (const { x, y } of newMap) {
+                const groundNeighboursCount = this.getSurroundingNeighboursCount(x, y);
+                newMap.set(x, y, groundNeighboursCount > 4 ? kWaterOrVoid : kGround);
+            }
+
+            this.map = newMap;
         }
         this.processMap();
 
-        for (let x = 0; x < this.width; x++) {
-            for (let z = 0; z < this.height; z++) {
-                let mesh: THREE.Mesh;
-                if (this.map[x][z] === kWaterOrVoid) {
-                    mesh = this.createCube("#1976D2", 0.75);
-                    const yPos = CellularAutomata.defaultYPos - (this.cubeWidth / 2);
-                    mesh.position.set(x * this.cubeWidth, yPos, z * this.cubeWidth);
-                }
-                else {
-                    const color = this.map[x][z] <= 7 ? CellularAutomata.borderColor : CellularAutomata.mainColor;
-                    mesh = this.createCube(color);
-                    mesh.position.set(x * this.cubeWidth, CellularAutomata.defaultYPos, z * this.cubeWidth);
-                }
-                yield mesh;
+        for (const { x, y, value } of this.map) {
+            let mesh: THREE.Mesh;
+            if (value === kWaterOrVoid) {
+                mesh = this.createCube("#1976D2", 0.75);
+                const yPos = CellularAutomata.defaultYPos - (this.cubeWidth / 2);
+                mesh.position.set(x * this.cubeWidth, yPos, y * this.cubeWidth);
             }
-        }
-    }
-
-    private doSimulationStep(): void {
-        const newMap: number[][] = [];
-
-        for (let x = 0; x < this.width; x++) {
-            newMap[x] = [];
-            for(let z = 0; z < this.height; z++) {
-                const groundNeighboursCount = this.getSurroundingNeighboursCount(x, z);
-
-                if (groundNeighboursCount > 4) {
-                    newMap[x][z] = kWaterOrVoid;
-                }
-                else {
-                    newMap[x][z] = kGround;
-                }
+            else {
+                const color = value <= 7 ? CellularAutomata.borderColor : CellularAutomata.mainColor;
+                mesh = this.createCube(color);
+                mesh.position.set(x * this.cubeWidth, CellularAutomata.defaultYPos, y * this.cubeWidth);
             }
+            yield mesh;
         }
-
-        this.map = newMap;
     }
 
     private getSurroundingNeighboursCount(x: number, y: number): number {
@@ -160,10 +122,10 @@ export default class CellularAutomata {
                 if (i === 0 && j === 0) {
                     continue;
                 }
-                else if(!this.isInMapRange(nbX, nbZ)){
+                else if(!this.map.inRange(nbX, nbZ)){
                     count++;
                 }
-                else if(this.map[nbX][nbZ] > 0){
+                else if(this.map.get(nbX, nbZ) > 0){
                     count++;
                 }
             }
@@ -172,17 +134,12 @@ export default class CellularAutomata {
         return count;
     }
 
-    private flagMapFromCoords(coords: Set<Coord>, type: number) {
-        for (const tile of coords) {
-            this.map[tile.x][tile.y] = type;
-        }
-    }
-
     private processMap(): void {
         const survivingRooms: Room[] = [];
+
         for (const region of this.getRegions(kGround)) {
-            if (region.size < this.groundRegionThreshold) {
-                this.flagMapFromCoords(region, kWaterOrVoid);
+            if (region.length < this.groundRegionThreshold) {
+                this.map.flagMapFromCoords(region, kWaterOrVoid);
             }
             else {
                 survivingRooms.push(new Room(region, this.map));
@@ -191,8 +148,8 @@ export default class CellularAutomata {
 
         // Cleanup water
         for (const region of this.getRegions(kWaterOrVoid)) {
-            if (region.size < this.voidRegionThreshold) {
-                this.flagMapFromCoords(region, kGround);
+            if (region.length < this.voidRegionThreshold) {
+                this.map.flagMapFromCoords(region, kGround);
             }
         }
 
@@ -201,13 +158,6 @@ export default class CellularAutomata {
         survivingRooms[0].isAccessibleFromMainRoom = true;
 
         this.connectClosestRooms(survivingRooms);
-
-        // const mapFlags = CellularAutomata.initMapFlags(this.width, this.height);
-        // for (const room of survivingRooms) {
-        //     for (const { x, y } of room.edgeTiles) {
-
-        //     }
-        // }
     }
 
     private connectClosestRooms(allRooms: Room[], forceAccessFromMainRoom: boolean = false): void {
@@ -280,8 +230,8 @@ export default class CellularAutomata {
                 if (x*x + y*y <= radius*radius) {
                     const drawX = tile.x + x;
                     const drawY = tile.y + y;
-                    if (this.isInMapRange(drawX, drawY)) {
-                        this.map[drawX][drawY] = kGround;
+                    if (this.map.inRange(drawX, drawY)) {
+                        this.map.set(drawX, drawY, kGround);
                     }
                 }
             }
@@ -344,43 +294,33 @@ export default class CellularAutomata {
         );
     }
 
-    private getRegions(type: number): Set<Set<Coord>> {
-        const regions = new Set<Set<Coord>>();
-        const mapFlags = CellularAutomata.initMapFlags(this.width, this.height);
+    private *getRegions(type: number): IterableIterator<Coord[]> {
+        const mapFlags = new CellularArray(this.width, this.height, true);
 
-        for (let x = 0; x < this.width; x++) {
-            for(let y = 0; y < this.height; y++) {
-                if (mapFlags[x][y] === 0 && this.map[x][y] === type) {
-                    const newRegion = this.getRegionTiles(x, y, type);
-                    regions.add(newRegion);
-
-                    for (const tile of newRegion.values()) {
-                        mapFlags[tile.x][tile.y] = 1;
-                    }
-                }
+        for (const { x, y, value } of this.map) {
+            if (mapFlags.get(x, y) === 0 && value === type) {
+                const newRegion = this.getRegionTiles(x, y, type);
+                mapFlags.flagMapFromCoords(newRegion, 1);
+                yield newRegion;
             }
         }
-
-        return regions;
     }
 
-    private getRegionTiles(startX: number, startY: number, type: number): Set<Coord> {
-        const tiles = new Set<Coord>();
-        const mapFlags = CellularAutomata.initMapFlags(this.width, this.height);
+    private getRegionTiles(startX: number, startY: number, type: number): Coord[] {
+        const tiles: Coord[] = [];
+        const mapFlags = new CellularArray(this.width, this.height, true);
 
         const queue: Coord[] = [{ x: startX, y: startY }];
-        mapFlags[startX][startY] = 1;
+        mapFlags.set(startX, startY, 1);
 
         while (queue.length > 0) {
             const tile = queue.shift();
-            tiles.add(tile);
+            tiles.push(tile);
 
-            for (let x = tile.x - 1; x <= tile.x + 1; x++) {
-                for (let y = tile.y - 1; y <= tile.y + 1; y++) {
-                    if (this.isInMapRange(x, y) && (x === tile.x || y === tile.y) && mapFlags[x][y] === 0 && this.map[x][y] === type) {
-                        mapFlags[x][y] = 1;
-                        queue.push({ x, y });
-                    }
+            for (const { x, y, value } of this.map.forTile(tile.x, tile.y)) {
+                if ((x === tile.x || y === tile.y) && mapFlags.get(x, y) === 0 && value === type) {
+                    mapFlags.set(x, y, 1);
+                    queue.push({ x, y });
                 }
             }
         }
