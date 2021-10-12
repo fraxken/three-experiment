@@ -24,7 +24,7 @@
     "@types/node": "^12.7.4",
     "@types/three": "^0.103.2",
     "cross-env": "^5.2.0",
-    "electron": "^6.0.7",
+    "electron": "^11.5.0",
     "electron-packager": "^14.0.5",
     "typescript": "^3.2.2",
     "webpack": "^4.28.3",
